@@ -13,6 +13,7 @@ use LimeSurvey\Api\Command\{
     ResponseData\ResponseDataError
 };
 use LimeSurvey\Api\Command\Mixin\Auth\AuthPermissionTrait;
+use LimeSurvey\Models\Services\BaseEmbed;
 
 /**
  * Survey Template
@@ -28,6 +29,11 @@ class SurveyTemplate implements CommandInterface
 
     protected Survey $survey;
     protected SurveyLanguageSetting $surveyLanguageSetting;
+    /**
+     * @psalm-suppress UndefinedClass
+     * @psalm-suppress PropertyNotSetInConstructor
+    */
+    protected BaseEmbed $embed;
 
     /**
      * Constructor
@@ -68,12 +74,18 @@ class SurveyTemplate implements CommandInterface
      *     "subtitle": "What should we eat for lunch?"
      * }
      *
+     * @psalm-suppress UndefinedClass
      * @param Request $request
      * @return Response
      */
     public function run(Request $request)
     {
         $surveyId = (int)$request->getData('_id');
+        $isPreview = (\Yii::app()->request->getPost('popuppreview', 'true') === 'true');
+        $this->embed = BaseEmbed::instantiate(\Yii::app()->request->getPost('embed', 'Standard'))
+            ->setWidth((int)\Yii::app()->request->getPost('width', 1024))
+            ->setHeight((int)\Yii::app()->request->getPost('height', 768))
+        ;
 
         if ($response = $this->ensurePermissions($surveyId)) {
             return $response;
@@ -101,9 +113,14 @@ class SurveyTemplate implements CommandInterface
             $response['title'] = $languageSettings->surveyls_title;
             $response['subtitle'] = $languageSettings->surveyls_description;
         }
-        $result = $this->getTemplateData($surveyId, $language);
+        if ($isPreview) {
+            $result = $this->getTemplateData($surveyId, $language);
+            $this->embed->setStructure($result);
+        } else {
+            $this->embed->setSrc($this->getSrc($surveyId, $language));
+        }
         return $this->responseFactory->makeSuccess(
-            array_merge($response, ['template' => $result])
+            array_merge($response, ['template' => $this->embed->render()])
         );
     }
 
@@ -186,5 +203,21 @@ class SurveyTemplate implements CommandInterface
         }
         curl_close(($ch));
         return $result;
+    }
+
+    /**
+     * Gets the source by survey id and language
+     * @param mixed $surveyId
+     * @param mixed $language
+     * @return string
+     */
+    private function getSrc($surveyId, $language)
+    {
+        $root = (
+            !empty($_SERVER['HTTPS'])
+            ? 'https'
+            : 'http'
+        ) . '://' . ($_SERVER['HTTP_HOST'] ?? '');
+        return $root . "/{$surveyId}?newtest=Y&lang={$language}";
     }
 }
