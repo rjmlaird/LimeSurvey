@@ -13,6 +13,7 @@ abstract class BaseEmbed
 
     public const EMBED_STRUCTURE_STANDARD = "Standard";
     protected static $supportedEmbeds = null;
+    protected bool $wrapper = true;
 
     /**
      * Instantiates an embed class or throws error if it's not supported
@@ -73,6 +74,17 @@ abstract class BaseEmbed
     abstract protected function getWrapper(string $placeholder = "PLACEHOLDER");
 
     /**
+     * Sets whether wrapper is to be displated
+     * @param bool $wrapper
+     * @return static
+     */
+    public function displayWrapper($wrapper)
+    {
+        $this->wrapper = $wrapper;
+        return $this;
+    }
+
+    /**
      * Returns the inner structure
      * @return string
      */
@@ -91,6 +103,6 @@ abstract class BaseEmbed
      */
     public function render(string $placeholder = "PLACEHOLDER")
     {
-        return str_replace($placeholder, $this->getStructure(), $this->getWrapper($placeholder));
+        return $this->wrapper ? str_replace($placeholder, $this->getStructure(), $this->getWrapper($placeholder)) : $this->getStructure();
     }
 }
