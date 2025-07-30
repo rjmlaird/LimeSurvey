@@ -369,6 +369,7 @@ class SurveyTemplate implements CommandInterface
                 let scripts = [];
                 for (let index = 0; index < initialScripts.length; index++) {
                     if (initialScripts[index].indexOf(\"<script\") < 0) {
+                        initialScripts[index] = initialScripts[index].replace('href=\"/', 'href=\"{$this->getRootUrl()}/');
                         addToHead += initialScripts[index];
                     } else {
                         let div = document.createElement('div');
