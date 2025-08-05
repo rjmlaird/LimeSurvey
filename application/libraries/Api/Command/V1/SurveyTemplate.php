@@ -88,6 +88,7 @@ class SurveyTemplate implements CommandInterface
         $this->surveyId = (int)$request->getData('_id');
         $this->isPreview = $this->isPreview && (\Yii::app()->request->getParam('popuppreview', 'true') === 'true');
         $this->js = $this->js || (\Yii::app()->request->getParam('js', 'false') === 'true');
+        $target = \Yii::app()->request->getParam('target', 'marketing');
         $embedType = $request->getData('embed') ?? BaseEmbed::EMBED_STRUCTURE_STANDARD;
         $embedOptions = $request->getData('embedOptions') ?? [];
         $this->embed = BaseEmbed::instantiate($embedType)
@@ -123,10 +124,10 @@ class SurveyTemplate implements CommandInterface
             $this->embed->setStructure($this->getJavascript());
         } elseif ($this->isPreview) {
             $result = $this->getTemplateData();
-            $this->embed->displayWrapper(true)->setStructure($result);
+            $this->embed->displayWrapper($target !== 'marketing')->setStructure($result);
         } else {
             $surveyResult = $this->getSurveyResult();
-            $this->embed->setStructure($surveyResult['form']);
+            $this->embed->displayWrapper(false)->setStructure($surveyResult['form']);
             $response['hiddenInputs'] = $surveyResult['hiddenInputs'];
             $response['head'] = $surveyResult['head'];
             $response['beginScripts'] = $surveyResult['beginScripts'];
