@@ -127,7 +127,7 @@ class SurveyTemplate implements CommandInterface
             $this->embed->displayWrapper($target !== 'marketing')->setStructure($result);
         } else {
             $surveyResult = $this->getSurveyResult();
-            $this->embed->displayWrapper(false)->setStructure($surveyResult['form']);
+            $this->embed->setStructure($surveyResult['form']);
             $response['hiddenInputs'] = $surveyResult['hiddenInputs'];
             $response['head'] = $surveyResult['head'];
             $response['beginScripts'] = $surveyResult['beginScripts'];
