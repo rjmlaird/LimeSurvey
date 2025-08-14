@@ -1,0 +1,108 @@
+#limesurvey-container {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: all 0.2s ease-in-out;
+    z-index: 1;
+    background: #fff;
+    --ls-embed-container-width: 450px;
+    width: var(--ls-embed-container-width);
+    height: 600px;
+    border: 1px dashed #8146F6;
+    border-radius: 4px;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+#limesurvey-container.side-right {
+    right: calc(var(--ls-embed-container-width) * -1);
+}
+#limesurvey-container.side-right.open {
+    right: 0;
+}
+#limesurvey-container.side-left {
+    left: calc(var(--ls-embed-container-width) * -1);
+}
+#limesurvey-container.side-left.open {
+    left: 0;
+}
+
+@media (max-width: 768px) {
+    #limesurvey-container.fullscreen-mobile {
+        width: 100%;
+        height: 100%;
+        top: 0;
+        transform: none;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        --ls-embed-container-width: 100vh;
+    }
+    #limesurvey-container.fullscreen-mobile.side-left.open {
+       /* button space */
+        padding-right: calc(52px); 
+    }
+    #limesurvey-container.fullscreen-mobile.side-right.open {
+       /* button space */
+        padding-left: calc(52px); 
+    }
+}
+
+#limesurvey-embed-button {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #14AE5C;
+    color: white;
+    writing-mode: vertical-lr;
+    padding: 10px;
+    cursor: pointer;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    gap: 10px;
+    transition: all 0.2s ease-in-out;
+    --ls-embed-container-width: 450px;
+}
+
+#limesurvey-embed-button.side-right {
+    right: 0;
+    border-radius: 4px 0 0 4px;
+}
+
+#limesurvey-embed-button.side-right.open {
+    right: calc(var(--ls-embed-container-width) - 1px);
+}
+
+#limesurvey-embed-button.side-left {
+    left: 0;
+    border-radius: 0 4px 4px 0;
+}
+
+#limesurvey-embed-button.side-left.open {
+    left: calc(var(--ls-embed-container-width) - 1px);
+}
+
+@media (max-width: 768px) {
+    #limesurvey-embed-button.fullscreen-mobile{
+        --ls-embed-container-width: 100vh;
+    }
+
+    #limesurvey-embed-button.fullscreen-mobile.side-left.open {
+        border-radius: 4px 0 0 4px;
+        left: auto;
+        right: 0;
+    }
+    #limesurvey-embed-button.fullscreen-mobile.side-right.open {
+        border-radius: 0 4px 4px 0;
+        right: auto;
+        left: 0;
+    }
+}
+
+#limesurvey-embed-button .icon {
+    display: inline-flex;
+    transform: rotate(-90deg);
+}
