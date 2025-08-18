@@ -10,6 +10,7 @@ class PopupEmbed extends BaseEmbed
      * Gets the HTML wrapper around the main structure
      * @param string $placeholder a text placeholder with a default value which will be replaced with the inner structure
      * @return string
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
     protected function getWrapper(string $placeholder = "PLACEHOLDER")
     {
