@@ -120,13 +120,15 @@
             el.remove()
         );
 
-        for (let toggle of form.querySelectorAll("#ls-toggle-token-show")) {
-            const tokenItems = toggle.parentNode.parentNode.querySelectorAll("#token");
-            if (tokenItems.length) {
-                let tokenItem = tokenItems[0];
-                toggle.addEventListener("click", function(evt) {
-                    tokenItem.type = ((tokenItem.type === "password") ? "text" : "password");
-                });
+        if (form.id === "form-token") {
+            for (let toggle of form.querySelectorAll("#ls-toggle-token-show")) {
+                const tokenItems = toggle.parentNode.parentNode.querySelectorAll("#token");
+                if (tokenItems.length) {
+                    let tokenItem = tokenItems[0];
+                    toggle.addEventListener("click", function(evt) {
+                        tokenItem.type = ((tokenItem.type === "password") ? "text" : "password");
+                    });
+                }
             }
         }
 
