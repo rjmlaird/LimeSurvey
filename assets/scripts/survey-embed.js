@@ -127,6 +127,9 @@
                     let tokenItem = tokenItems[0];
                     toggle.addEventListener("click", function(evt) {
                         tokenItem.type = ((tokenItem.type === "password") ? "text" : "password");
+                        for (let child of toggle.children) {
+                            child.classList.toggle("d-none");
+                        }
                     });
                 }
             }
