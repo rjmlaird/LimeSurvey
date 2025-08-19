@@ -106,7 +106,7 @@
         surveyRoot.innerHTML = template;
 
         // Update form for submission via fetch
-        const form = surveyRoot.querySelector("#limesurvey");
+        const form = surveyRoot.querySelector("#limesurvey, #form-token");
         form.action = requestUrl;
 
         form.querySelectorAll("[name]").forEach((el) => {
