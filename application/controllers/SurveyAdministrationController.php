@@ -3219,10 +3219,18 @@ class SurveyAdministrationController extends LSBaseController
      */
     protected function tabPublicationAccess($survey)
     {
+//        $oParentTemplate = Template::getTemplateConfiguration(null, $survey->sid);
+//        $temp = \TemplateConfiguration::getInstanceFromSurveyId($survey->sid);
+//        $var = $temp->getOptionPage();
+//        echo '<pre>';
+//        print_r($oParentTemplate);
+//        die();
+        $surveyEmbedding = \TemplateConfiguration::getThemeOptionsFromSurveyId($survey->sid, true)[0]['config']['options']['surveyembedding'] ?? 'off';
         $aDateFormatDetails = getDateFormatData(Yii::app()->session['dateformat']);
         $aData = [];
         $aData['dateformatdetails'] = $aDateFormatDetails;
         $aData['survey'] = $survey;
+//        $aData['surveyTemplateEmbedding'] = $surveyEmbedding;
         return $aData;
     }
 

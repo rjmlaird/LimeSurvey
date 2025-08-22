@@ -46,7 +46,7 @@ $optionsOnOff = array(
                             'bShowInherited' => $oSurvey->showInherited,
                             'optionsOnOff' => $optionsOnOff,
                             'bShowAllOptions' => false,
-                            'users' => $users,
+                            'users' => $users
                         )
                     ); ?>
                 </div>
@@ -94,6 +94,7 @@ $optionsOnOff = array(
                             'optionsOnOff' => $optionsOnOff,
                             'dateformatdetails' => $aDateFormatDetails,
                             'bShowAllOptions' => false,
+//                            'surveyTemplateEmbedding' => $surveyTemplateEmbedding
                         )
                     ); ?>
                 </div>
