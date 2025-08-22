@@ -33,6 +33,8 @@ class SurveyTemplate implements CommandInterface
     protected bool $isPreview = true;
     protected bool $js = false;
     protected string $language = "en";
+    protected bool $fillToken = false;
+    protected string $token = "";
     const ENDPOINT = "/index.php/rest/v1/survey-template/";
     /**
      * @psalm-suppress UndefinedClass
@@ -79,6 +81,7 @@ class SurveyTemplate implements CommandInterface
      *     "subtitle": "What should we eat for lunch?"
      * }
      *
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      * @psalm-suppress UndefinedClass
      * @param Request $request
      * @return Response
@@ -88,6 +91,8 @@ class SurveyTemplate implements CommandInterface
         $this->surveyId = (int)$request->getData('_id');
         $this->isPreview = $this->isPreview && (\Yii::app()->request->getParam('popuppreview', 'true') === 'true');
         $this->js = $this->js || (\Yii::app()->request->getParam('js', 'false') === 'true');
+        $this->fillToken = (\Yii::app()->request->getParam('filltoken', 'false') === 'true');
+        $this->token = \Yii::app()->request->getParam('LSEMBED-token', '');
         $target = \Yii::app()->request->getParam('target', 'marketing');
         $embedType = \Yii::app()->request->getParam('embed', BaseEmbed::EMBED_STRUCTURE_STANDARD);
         $embedOptions = \Yii::app()->request->getParam('embedOptions', []);
@@ -241,7 +246,8 @@ class SurveyTemplate implements CommandInterface
     private function getSrc()
     {
         $root = $this->getRootUrl();
-        return $root . "/index.php/{$this->surveyId}?lang={$this->language}";
+        $token = ($this->token ? "&token=" . $this->token : "");
+        return $root . "/index.php/{$this->surveyId}?lang={$this->language}" . ($this->fillToken ? "&filltoken=true" : "") . $token;
     }
 
     /**
@@ -297,7 +303,7 @@ class SurveyTemplate implements CommandInterface
         $nonEmpty = $headerPart . ' ';
         @$dom->loadHTML($nonEmpty);
         $xpath = new \DOMXPath($dom);
-        $forms = $xpath->query("//*[@id='limesurvey']");
+        $forms = $xpath->query("//article");
         $form = substr($result, $headerEnd ?? 0);
         foreach ($forms as $f) {
             $form = $dom->saveHTML($f);
@@ -320,8 +326,13 @@ class SurveyTemplate implements CommandInterface
             $bos[] = $dom->saveHTML($bottomScript);
         }
         $bos = implode("SEPARATOR", $bos);
+        $registration = $xpath->query("//*[@id='register_firstname']");
+        $isRegistration = false;
+        foreach ($registration as $r) {
+            $isRegistration = true;
+        }
         return [
-            'form' => $form,
+            'form' => $isRegistration ?  "<form id='limesurvey' class='register'><a class='register' target='_blank'></a></form>" : $form,
             'hiddenInputs' => $hiddenInputs,
             'head' => $h,
             'beginScripts' => $bes,
