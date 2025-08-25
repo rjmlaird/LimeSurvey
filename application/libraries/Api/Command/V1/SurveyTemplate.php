@@ -196,9 +196,9 @@ class SurveyTemplate implements CommandInterface
     /**
      * Get template data
      *
-     * @return Response|bool|string
+     * @return string
      */
-    private function getTemplateData()
+    private function getTemplateData(): string
     {
         // @todo This shouldnt require a HTTP request we should be able to
         // - render survey content internally. To handle this correctly
