@@ -144,7 +144,7 @@ class SurveyTemplate implements CommandInterface
             ->setEmbedOptions($embedOptions);
     }
 
-    private function buildLanguageSettings($survey): array
+    private function buildLanguageSettings(Survey $survey): array
     {
         $this->language = ((\Yii::app()->request->getParam('lang') ?? $survey->language) ?? 'en');
         $languageSettings = $this
