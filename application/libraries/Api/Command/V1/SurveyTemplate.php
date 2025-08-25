@@ -198,7 +198,7 @@ class SurveyTemplate implements CommandInterface
      *
      * @return Response|bool|string
      */
-    private function getTemplateData()
+    private function getTemplateData(): string
     {
         // @todo This shouldnt require a HTTP request we should be able to
         // - render survey content internally. To handle this correctly
@@ -268,7 +268,7 @@ class SurveyTemplate implements CommandInterface
      * @psalm-suppress PossiblyInvalidCast
      * @return array{beginScripts: string, bottomScripts: string, form: bool|string, head: string, hiddenInputs: string|array{beginScripts: string, bottomScripts: string, form: string, head: string, hiddenInputs: string}}
      */
-    private function getSurveyResult()
+    private function getSurveyResult(): array
     {
         $LEMPostKey = \Yii::app()->request->getPost('LSEMBED-LEMpostKey', false);
         $form = "";
