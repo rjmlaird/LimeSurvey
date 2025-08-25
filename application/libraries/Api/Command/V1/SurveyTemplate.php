@@ -85,14 +85,7 @@ class SurveyTemplate implements CommandInterface
      */
     public function run(Request $request)
     {
-        $this->surveyId = (int)$request->getData('_id');
-        $this->isPreview = $this->isPreview && (\Yii::app()->request->getParam('popuppreview', 'true') === 'true');
-        $this->js = $this->js || (\Yii::app()->request->getParam('js', 'false') === 'true');
-        $target = \Yii::app()->request->getParam('target', 'marketing');
-        $embedType = \Yii::app()->request->getParam('embed', BaseEmbed::EMBED_STRUCTURE_STANDARD);
-        $embedOptions = \Yii::app()->request->getParam('embedOptions', []);
-        $this->embed = BaseEmbed::instantiate($embedType)
-                        ->setEmbedOptions($embedOptions);
+        $this->initializeRequest($request);
 
         if ($response = $this->ensurePermissions()) {
             return $response;
@@ -119,21 +112,12 @@ class SurveyTemplate implements CommandInterface
             );
         }
 
-        $this->language = ((\Yii::app()->request->getParam('lang') ?? $survey->language) ?? 'en');
-        $languageSettings = $this
-            ->surveyLanguageSetting
-            ->find('surveyls_survey_id = :sid and surveyls_language = :language', [
-                ':sid'      => $this->surveyId,
-                ':language' => $this->language
-            ]);
-        $response = [];
-        if ($languageSettings) {
-            $response['title'] = $languageSettings->surveyls_title;
-            $response['subtitle'] = $languageSettings->surveyls_description;
-        }
+        $response = $this->buildLanguageSettings($survey);
+
         if ($this->js) {
             $this->embed->setStructure($this->getJavascript());
         } elseif ($this->isPreview) {
+            $target = \Yii::app()->request->getParam('target', 'marketing');
             $result = $this->getTemplateData();
             $this->embed->displayWrapper($target !== 'marketing')->setStructure($result);
         } else {
@@ -147,6 +131,34 @@ class SurveyTemplate implements CommandInterface
         return $this->responseFactory->makeSuccess(
             array_merge($response, ['template' => $this->embed->render()])
         );
+    }
+
+    private function initializeRequest(Request $request): void
+    {
+        $this->surveyId = (int)$request->getData('_id');
+        $this->isPreview = $this->isPreview && (\Yii::app()->request->getParam('popuppreview', 'true') === 'true');
+        $this->js = $this->js || (\Yii::app()->request->getParam('js', 'false') === 'true');
+        $embedType = \Yii::app()->request->getParam('embed', BaseEmbed::EMBED_STRUCTURE_STANDARD);
+        $embedOptions = \Yii::app()->request->getParam('embedOptions', []);
+        $this->embed = BaseEmbed::instantiate($embedType)
+            ->setEmbedOptions($embedOptions);
+    }
+
+    private function buildLanguageSettings($survey): array
+    {
+        $this->language = ((\Yii::app()->request->getParam('lang') ?? $survey->language) ?? 'en');
+        $languageSettings = $this
+            ->surveyLanguageSetting
+            ->find('surveyls_survey_id = :sid and surveyls_language = :language', [
+                ':sid'      => $this->surveyId,
+                ':language' => $this->language
+            ]);
+        $response = [];
+        if ($languageSettings) {
+            $response['title'] = $languageSettings->surveyls_title;
+            $response['subtitle'] = $languageSettings->surveyls_description;
+        }
+        return $response;
     }
 
     /**
