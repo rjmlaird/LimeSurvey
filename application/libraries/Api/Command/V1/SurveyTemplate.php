@@ -105,18 +105,11 @@ class SurveyTemplate implements CommandInterface
             );
         }
 
-        if (!$survey->getIsEmbeddingAllowed()) {
-            return $this->responseFactory->makeErrorNotFound(
-                (new ResponseDataError(
-                    'EMBEDDING_NOT_ALLOWED',
-                    'Embedding not allowed'
-                )
-                )->toArray()
-            );
+        if ($response = $this->ensureEmbeddingAllowed($survey)) {
+            return $response;
         }
 
         $response = $this->buildLanguageSettings($survey);
-      
         $embedType = \Yii::app()->request->getParam('embed', BaseEmbed::EMBED_STRUCTURE_STANDARD);
         $embedOptions = \Yii::app()->request->getParam('embedOptions', []);
         $renderOnlyEmbedTypes = [BaseEmbed::EMBED_STRUCTURE_EMAIL, BaseEmbed::EMBED_STRUCTURE_BUTTON];
@@ -211,6 +204,26 @@ class SurveyTemplate implements CommandInterface
             );
         }
 
+        return false;
+    }
+
+    /**
+     * Ensure Embedding mode
+     *
+     * @param Survey $survey
+     * @return Response|false
+     */
+    public function ensureEmbeddingAllowed(Survey $survey)
+    {
+        if (!$survey->getIsEmbeddingAllowed()) {
+            return $this->responseFactory->makeErrorNotFound(
+                (new ResponseDataError(
+                    'EMBEDDING_NOT_ALLOWED',
+                    'Embedding not allowed'
+                )
+                )->toArray()
+            );
+        }
         return false;
     }
 
