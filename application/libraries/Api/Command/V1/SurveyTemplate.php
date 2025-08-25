@@ -119,7 +119,13 @@ class SurveyTemplate implements CommandInterface
         } elseif ($this->isPreview) {
             $target = \Yii::app()->request->getParam('target', 'marketing');
             $result = $this->getTemplateData();
-            $this->embed->displayWrapper($target !== 'marketing')->setStructure((string)$result);
+            if ($result instanceof Response) {
+                return $result;
+            }
+            if (!is_string($result)) {
+                $result = '';
+            }
+            $this->embed->displayWrapper($target !== 'marketing')->setStructure($result);
         } else {
             $surveyResult = $this->getSurveyResult();
             $this->embed->displayWrapper(false)->setStructure((string)$surveyResult['form']);
@@ -196,9 +202,9 @@ class SurveyTemplate implements CommandInterface
     /**
      * Get template data
      *
-     * @return string
+     * @return Response|bool|string
      */
-    private function getTemplateData(): string
+    private function getTemplateData()
     {
         // @todo This shouldnt require a HTTP request we should be able to
         // - render survey content internally. To handle this correctly
