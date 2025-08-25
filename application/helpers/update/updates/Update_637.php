@@ -10,10 +10,10 @@ class Update_637 extends DatabaseUpdateBase
         addColumn('{{surveys}}', 'allow_embed', "string(1) DEFAULT 'N'");
 
         // Add new column to the surveys table to allow embedding of surveys
-        $this->UpdateTemplateConfigurations();
+        $this->updateTemplateConfigurations();
     }
 
-    public function UpdateTemplateConfigurations()
+    public function updateTemplateConfigurations()
     {
         $templateConfigurations = $this->getThemes();
         if (!empty($templateConfigurations)) {
