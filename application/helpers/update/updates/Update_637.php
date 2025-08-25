@@ -7,7 +7,7 @@ class Update_637 extends DatabaseUpdateBase
     public function up()
     {
         // Add new column to the surveys table to allow embedding of surveys
-//        addColumn('{{surveys}}', 'allow_embed', "string(1) DEFAULT 'N'");
+        addColumn('{{surveys}}', 'allow_embed', "string(1) DEFAULT 'N'");
 
         // Add new column to the surveys table to allow embedding of surveys
         $this->UpdateTemplateConfigurations();

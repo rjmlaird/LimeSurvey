@@ -94,7 +94,6 @@ $optionsOnOff = array(
                             'optionsOnOff' => $optionsOnOff,
                             'dateformatdetails' => $aDateFormatDetails,
                             'bShowAllOptions' => false,
-//                            'surveyTemplateEmbedding' => $surveyTemplateEmbedding
                         )
                     ); ?>
                 </div>
