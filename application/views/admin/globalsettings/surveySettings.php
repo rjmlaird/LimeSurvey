@@ -46,7 +46,7 @@ $optionsOnOff = array(
                             'bShowInherited' => $oSurvey->showInherited,
                             'optionsOnOff' => $optionsOnOff,
                             'bShowAllOptions' => false,
-                            'users' => $users
+                            'users' => $users,
                         )
                     ); ?>
                 </div>
