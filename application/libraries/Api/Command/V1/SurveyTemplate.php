@@ -119,6 +119,9 @@ class SurveyTemplate implements CommandInterface
                 )->toArray()
             );
         }
+        if ($response = $this->validateAccessToken()) {
+            return $response;
+        }
         $this->language = ((\Yii::app()->request->getParam('lang') ?? $survey->language) ?? 'en');
         $languageSettings = $this
             ->surveyLanguageSetting
@@ -192,6 +195,26 @@ class SurveyTemplate implements CommandInterface
         return false;
     }
 
+    /**
+     * Validate the access token
+     *
+     * @return Response|false
+     */
+    private function validateAccessToken()
+    {
+        $tokenFound = \Token::model($this->surveyId)->findByAttributes(['token' => $this->token]);
+        $step = \Yii::app()->request->getParam('LSEMBED-move', '');
+        if ($this->token && !$tokenFound && $step !== 'movesubmit') {
+            return $this->responseFactory->makeErrorNotFound(
+                (new ResponseDataError(
+                    'TOKEN_NOT_FOUND',
+                    gT("The access code you have provided is either not valid, or has already been used.")
+                )
+                )->toArray()
+            );
+        }
+        return false;
+    }
     /**
      * Get template data
      *
