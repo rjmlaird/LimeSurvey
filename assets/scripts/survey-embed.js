@@ -138,6 +138,7 @@ if (typeof lsFormIndex === "undefined") {
             token = ""
         ) {
             lang = l;
+            const isTokenForm = (surveyRoot.querySelector("input[name=LSEMBED-token]") !== null);
             const formData = Array.from(form.querySelectorAll("[name]"))
                 .filter(
                     (el) =>
@@ -154,7 +155,14 @@ if (typeof lsFormIndex === "undefined") {
                     "&popuppreview=false" +
                     (ft ? "&filltoken=true" : "") +
                     (token ? `&LSEMBED-token=${token}` : "")
-            );
+            ).then(function() {
+                if (isTokenForm) {
+                    const tokenLink = surveyRoot.querySelector(".ls-link-action.token");
+                    if (tokenLink) {
+                        tokenLink.click();
+                    }
+                }
+            });
         };
         form.action = getRequestUrl();
 
