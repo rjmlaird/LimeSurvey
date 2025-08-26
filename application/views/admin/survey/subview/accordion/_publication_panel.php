@@ -162,16 +162,16 @@ echo viewHelper::getViewTestTag('surveyPublicationOptions');
                 <div>
                     <?php $this->widget('ext.ButtonGroupWidget.ButtonGroupWidget', [
                         'name'          => 'allow_embed',
-                        'checkedOption' => (!$oSurvey->getIsInhertedEmbeddingMode())
+                        'checkedOption' => (!$oSurvey->getIsInheritedEmbeddingMode())
                             ? 'I'
                             : ($oSurvey->getIsEmbeddingAllowed() ? ('Y') : ('N')),
                         'selectOptions' => [
                             'Y' => gT('Yes'),
                             'N' => gT('No'),
-                            'I' => $oSurvey->getIsInhertedEmbeddingMode() == 'Y' ? gT('Yes'). " ᴵ" :  gT('No'). " ᴵ"
+                            'I' => $oSurvey->getIsInheritedEmbeddingMode() == 'Y' ? gT('Yes'). " ᴵ" :  gT('No'). " ᴵ"
                         ],
                         'htmlOptions' => [
-                            "class" => ($oSurvey->getIsInhertedEmbeddingMode() ? '' : 'setting-readonly')
+                            "class" => ($oSurvey->getIsInheritedEmbeddingMode() ? '' : 'setting-readonly')
                         ]
                     ]);
                     ?>

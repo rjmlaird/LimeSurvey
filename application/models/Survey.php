@@ -2185,7 +2185,7 @@ class Survey extends LSActiveRecord implements PermissionInterface
         return $this->countTotalQuestions - $this->countNoInputQuestions;
     }
 
-    public function getIsInhertedEmbeddingMode()
+    public function getIsInheritedEmbeddingMode()
     {
         return (\TemplateConfiguration::getIsEmbeddingAllowed($this->sid) == 'Y');
     }

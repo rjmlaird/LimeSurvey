@@ -114,8 +114,15 @@ if (typeof lsFormIndex === "undefined") {
         });
 
         const responseText = await response.text();
-        const { template, hiddenInputs, head, beginScripts, bottomScripts } =
-            JSON.parse(responseText);
+        const responseTextParsed = JSON.parse(responseText);
+
+        removeError();
+        if (responseTextParsed.error) {
+            error(responseTextParsed.error.message);
+            return;
+        }
+
+        const { template, hiddenInputs, head, beginScripts, bottomScripts } = responseTextParsed;
 
         const surveyRoot = document.getElementById(`limesurvey-${containerId}`);
         surveyRoot.innerHTML = template;
@@ -226,6 +233,25 @@ if (typeof lsFormIndex === "undefined") {
         injectScripts(headScriptsList, documentHead)
             .then(() => injectScripts(beginScriptList, beginContainer))
             .then(() => injectScripts(bottomScriptsList, bottomContainer));
+    }
+
+    function removeError() {
+        const oldError = document.querySelector(".error");
+        if (oldError) {
+            oldError.remove();
+        }
+    }
+    function error(errorText) {
+        removeError()
+
+        const div = document.createElement("div");
+        div.className = "alert alert-danger list-unstyled mt-3";
+        div.textContent = errorText
+        const p = document.createElement("div");
+        p.className = "container-fluid error col-centered col-xl-8";
+        p.appendChild(div);
+
+        document.getElementById("limesurvey-container").prepend(p);
     }
 
     // Initial Load
