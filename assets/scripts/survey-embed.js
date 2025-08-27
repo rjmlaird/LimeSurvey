@@ -21,7 +21,7 @@ if (typeof lsFormIndex === "undefined") {
     const referer =
         window.location.protocol + "//" + window.location.host + "/";
     function getRequestUrl() {
-        return `${rootUrl}/index.php/rest/v1/survey-template/${surveyId}?lang=${lang}`;
+        return `${rootUrl}/index.php/rest/v1/survey-template/${surveyId}?lang=${lang}&noregister=true`;
     }
     let pageNumber = 0;
 
@@ -282,16 +282,8 @@ if (typeof lsFormIndex === "undefined") {
             let tokenRedirect = tokenRedirects[0];
             tokenRedirect.addEventListener("click", function (evt) {
                 evt.preventDefault();
-                if (tokenRedirect.classList.contains("token")) {
-                    window["lssubmit" + lsFormIndex](lang, true);
-                } else {
-                    register();
-                }
+                window["lssubmit" + lsFormIndex](lang, true);
             });
-        }
-
-        if (form.classList.contains("register")) {
-            register();
         }
 
         const headScriptsList = head.split("SEPARATOR");
