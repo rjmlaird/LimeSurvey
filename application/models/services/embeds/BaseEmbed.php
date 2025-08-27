@@ -14,6 +14,8 @@ abstract class BaseEmbed
     public const EMBED_STRUCTURE_STANDARD = "Standard";
     public const EMBED_STRUCTURE_WIDGET = "Widget";
     public const EMBED_STRUCTURE_POPUP = "Popup";
+    public const EMBED_STRUCTURE_BUTTON = "Button";
+    public const EMBED_STRUCTURE_EMAIL = "Email";
     protected static $supportedEmbeds = null;
     protected bool $wrapper = true;
 
@@ -29,7 +31,9 @@ abstract class BaseEmbed
             self::$supportedEmbeds = [
                 self::EMBED_STRUCTURE_STANDARD,
                 self::EMBED_STRUCTURE_WIDGET,
-                self::EMBED_STRUCTURE_POPUP
+                self::EMBED_STRUCTURE_POPUP,
+                self::EMBED_STRUCTURE_BUTTON,
+                self::EMBED_STRUCTURE_EMAIL
             ];
         }
         $embed = "LimeSurvey\\Models\\Services\\embeds\\{$key}Embed";

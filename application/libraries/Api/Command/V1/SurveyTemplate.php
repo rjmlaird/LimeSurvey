@@ -33,6 +33,7 @@ class SurveyTemplate implements CommandInterface
     protected bool $isPreview = true;
     protected bool $js = false;
     protected string $language = "en";
+    protected bool $fillToken = false;
     protected string $token = "";
     const ENDPOINT = "/index.php/rest/v1/survey-template/";
     /**
@@ -80,6 +81,7 @@ class SurveyTemplate implements CommandInterface
      *     "subtitle": "What should we eat for lunch?"
      * }
      *
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      * @psalm-suppress UndefinedClass
      * @param Request $request
      * @return Response
@@ -89,10 +91,17 @@ class SurveyTemplate implements CommandInterface
         $this->surveyId = (int)$request->getData('_id');
         $this->isPreview = $this->isPreview && (\Yii::app()->request->getParam('popuppreview', 'true') === 'true');
         $this->js = $this->js || (\Yii::app()->request->getParam('js', 'false') === 'true');
+        $this->fillToken = (\Yii::app()->request->getParam('filltoken', 'false') === 'true');
         $this->token = \Yii::app()->request->getParam('LSEMBED-token', '');
         $target = \Yii::app()->request->getParam('target', 'marketing');
         $embedType = \Yii::app()->request->getParam('embed', BaseEmbed::EMBED_STRUCTURE_STANDARD);
         $embedOptions = \Yii::app()->request->getParam('embedOptions', []);
+        $renderOnlyEmbedTypes = [BaseEmbed::EMBED_STRUCTURE_EMAIL, BaseEmbed::EMBED_STRUCTURE_BUTTON];
+
+        if (in_array($embedType, $renderOnlyEmbedTypes)) {
+            $embedOptions['surveyId'] = $this->surveyId;
+        }
+
         $this->embed = BaseEmbed::instantiate($embedType)
                         ->setEmbedOptions($embedOptions);
 
@@ -110,6 +119,9 @@ class SurveyTemplate implements CommandInterface
                 )->toArray()
             );
         }
+        if ($response = $this->validateAccessToken()) {
+            return $response;
+        }
         $this->language = ((\Yii::app()->request->getParam('lang') ?? $survey->language) ?? 'en');
         $languageSettings = $this
             ->surveyLanguageSetting
@@ -122,19 +134,30 @@ class SurveyTemplate implements CommandInterface
             $response['title'] = $languageSettings->surveyls_title;
             $response['subtitle'] = $languageSettings->surveyls_description;
         }
-        if ($this->js) {
-            $this->embed->setStructure($this->getJavascript());
-        } elseif ($this->isPreview) {
-            $result = $this->getTemplateData();
-            $this->embed->displayWrapper($target !== 'marketing')->setStructure($result);
-        } else {
-            $surveyResult = $this->getSurveyResult();
-            $this->embed->displayWrapper(false)->setStructure($surveyResult['form']);
-            $response['hiddenInputs'] = $surveyResult['hiddenInputs'];
-            $response['head'] = $surveyResult['head'];
-            $response['beginScripts'] = $surveyResult['beginScripts'];
-            $response['bottomScripts'] = $surveyResult['bottomScripts'];
+        if (!in_array($embedType, $renderOnlyEmbedTypes)) {
+            $structure = '';
+            if ($this->js) {
+                $structure = $this->getJavascript($embedType, $this->isPreview);
+                if (!$this->isPreview) {
+                    $this->embed->setStructure($structure);
+                }
+            }
+            if ($this->isPreview) {
+                $result = $this->getTemplateData();
+                if (is_string($result)) {
+                    $structure .= " {$result}";
+                }
+                $this->embed->displayWrapper($target !== 'marketing')->setStructure($structure);
+            } elseif (!$this->js) {
+                $surveyResult = $this->getSurveyResult();
+                $this->embed->displayWrapper(false)->setStructure($surveyResult['form']);
+                $response['hiddenInputs'] = $surveyResult['hiddenInputs'];
+                $response['head'] = $surveyResult['head'];
+                $response['beginScripts'] = $surveyResult['beginScripts'];
+                $response['bottomScripts'] = $surveyResult['bottomScripts'];
+            }
         }
+
         return $this->responseFactory->makeSuccess(
             array_merge($response, ['template' => $this->embed->render()])
         );
@@ -172,6 +195,28 @@ class SurveyTemplate implements CommandInterface
         return false;
     }
 
+    /**
+     * Validate the access token
+     *
+     * @return Response|false
+     */
+    private function validateAccessToken()
+    {
+        if ($this->survey->hasTokens()) {
+            $tokenFound = \Token::model($this->surveyId)->findByAttributes(['token' => $this->token]);
+            $step = \Yii::app()->request->getParam('LSEMBED-move', '');
+            if ($this->token && !$tokenFound && $step !== 'movesubmit') {
+                return $this->responseFactory->makeErrorNotFound(
+                    (new ResponseDataError(
+                        'TOKEN_NOT_FOUND',
+                        gT("The access code you have provided is either not valid, or has already been used.")
+                    )
+                    )->toArray()
+                );
+            }
+        }
+        return false;
+    }
     /**
      * Get template data
      *
@@ -239,7 +284,7 @@ class SurveyTemplate implements CommandInterface
     {
         $root = $this->getRootUrl();
         $token = ($this->token ? "&token=" . $this->token : "");
-        return $root . "/index.php/{$this->surveyId}?lang={$this->language}" . $token;
+        return $root . "/index.php/{$this->surveyId}?lang={$this->language}&noregister=true&" . ($this->fillToken ? "&filltoken=true" : "") . $token;
     }
 
     /**
@@ -295,7 +340,7 @@ class SurveyTemplate implements CommandInterface
         $nonEmpty = $headerPart . ' ';
         @$dom->loadHTML($nonEmpty);
         $xpath = new \DOMXPath($dom);
-        $forms = $xpath->query("//*[@id='limesurvey']");
+        $forms = $xpath->query("//article");
         $form = substr($result, $headerEnd ?? 0);
         foreach ($forms as $f) {
             $form = $dom->saveHTML($f);
@@ -329,28 +374,35 @@ class SurveyTemplate implements CommandInterface
 
     /**
      * Gets the javascript that does the goodies
-     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
-     * @param mixed $properties
+     * @param string $embedType
+     * @param bool $isPreview
      * @return string
      */
-    private function getJavascript($properties = null)
+    private function getJavascript(string $embedType, bool $isPreview = false)
     {
-        $containerId = is_array($properties) && isset($properties['container_id'])
-        ? $properties['container_id']
-        : '1';
+        $containerId = '1';
         $lang = $this->language;
         $surveyId = $this->surveyId;
         $rootUrl = $this->getRootUrl();
         $embedScriptUrl = $rootUrl . '/assets/scripts/survey-embed.js';
 
+        $allowedTypes = [BaseEmbed::EMBED_STRUCTURE_POPUP, BaseEmbed::EMBED_STRUCTURE_WIDGET];
+        $optionalAttributes = '';
+        if ($isPreview) {
+            $optionalAttributes .= ' data-is-preview="true"';
+        }
+        if (in_array($embedType, $allowedTypes, true)) {
+            $optionalAttributes .= ' data-embed-type="' . $embedType . '"';
+        }
+
         return <<<HTML
-    <script
-        src="{$embedScriptUrl}"
-        data-survey-id="{$surveyId}"
-        data-lang="{$lang}"
-        data-container-id="{$containerId}"
-        data-root-url="{$rootUrl}"
-    ></script>
-    HTML;
+                <script
+                    src="{$embedScriptUrl}"
+                    data-survey-id="{$surveyId}"
+                    data-lang="{$lang}"
+                    data-container-id="{$containerId}"
+                    data-root-url="{$rootUrl}" {$optionalAttributes}>
+                </script>
+            HTML;
     }
 }

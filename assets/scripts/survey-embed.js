@@ -1,23 +1,45 @@
+if (typeof lsFormIndex === "undefined") {
+    var lsFormIndex = 0;
+} else {
+    lsFormIndex++;
+}
 (function () {
     // Configuration & Script Info
-    const script = document.currentScript;
+    let script = document.currentScript;
+    if (!script) {
+        script = window.__LS_SHADOW_ROOT__.querySelector(
+            "script[data-is-preview]"
+        );
+    }
     const surveyId = script.dataset.surveyId;
-    const lang = script.dataset.lang || "en";
+    let lang = script.dataset.lang || "en";
     const containerId = script.dataset.containerId || "1";
     const rootUrl = script.dataset.rootUrl || window.location.origin;
+    const isPreview = script.dataset.isPreview === "true";
+    const embedType = script.dataset.embedType || null;
+
     const referer =
         window.location.protocol + "//" + window.location.host + "/";
-    const requestUrl = `${rootUrl}/index.php/rest/v1/survey-template/${surveyId}?lang=${lang}`;
+    function getRequestUrl() {
+        return `${rootUrl}/index.php/rest/v1/survey-template/${surveyId}?lang=${lang}&noregister=true`;
+    }
     let pageNumber = 0;
 
     // Prepare the container in the DOM
-    document.documentElement.className = "js"; // "js" class shows that JavaScript is enabled
-    const container = document.getElementById("limesurvey-container");
-    container.innerHTML = `
-      <div id="beginScripts"></div>
-      <div id="limesurvey-${containerId}"></div>
-      <div id="bottomScripts"></div>
-    `;
+    if (!isPreview) {
+        document.documentElement.className = "js"; // "js" class shows that JavaScript is enabled
+        const container = document.getElementById("limesurvey-container");
+        container.innerHTML = `
+          <div id="beginScripts"></div>
+          <div id="limesurvey-${containerId}"></div>
+          <div id="bottomScripts"></div>
+          <style>
+              .nav-link.ls-link-action.ls-link-loadall {
+                  display: none;
+              }
+          </style>
+        `;
+    }
 
     // Inject scripts and styles in order
     function injectScripts(scripts, container) {
@@ -72,11 +94,33 @@
         return chain;
     }
 
+    function removeError() {
+        const oldError = document.querySelector(".error");
+        if (oldError) {
+            oldError.remove();
+        }
+    }
+    function error(errorText) {
+        removeError()
+
+        const div = document.createElement("div");
+        div.className = "alert alert-danger list-unstyled mt-3";
+        div.textContent = errorText
+        const p = document.createElement("div");
+        p.className = "container-fluid error col-centered col-xl-8";
+        p.appendChild(div);
+
+        document.getElementById("limesurvey-container").prepend(p);
+    }
+
     // Send a POST request to load or submit the form
     async function fetchSurveyContent(params) {
         pageNumber++;
+        if (params.lang) {
+            lang = params.lang;
+        }
 
-        const response = await fetch(requestUrl, {
+        const response = await fetch(getRequestUrl(), {
             method: "POST",
             body: new URLSearchParams(params),
             headers: {
@@ -97,17 +141,55 @@
                 "sec-ch-ua-platform": '"Linux"',
             },
         });
-
         const responseText = await response.text();
-        const { template, hiddenInputs, head, beginScripts, bottomScripts } =
-            JSON.parse(responseText);
+        const responseTextParsed = JSON.parse(responseText)
+
+        removeError()
+        if (responseTextParsed.error) {
+            error(responseTextParsed.error.message);
+            return;
+        }
+
+        const { template, hiddenInputs, head, beginScripts, bottomScripts } = responseTextParsed;
 
         const surveyRoot = document.getElementById(`limesurvey-${containerId}`);
         surveyRoot.innerHTML = template;
 
         // Update form for submission via fetch
         const form = surveyRoot.querySelector("#limesurvey, #form-token");
-        form.action = requestUrl;
+        window["lssubmit" + lsFormIndex] = function (
+            l,
+            ft = false,
+            token = ""
+        ) {
+            lang = l;
+            const isTokenForm = (surveyRoot.querySelector("input[name=LSEMBED-token]") !== null);
+            const formData = Array.from(form.querySelectorAll("[name]"))
+                .filter(
+                    (el) =>
+                        [
+                            "LSEMBED-YII_CSRF_TOKEN",
+                            "LSEMBED-LEMpostKey",
+                        ].indexOf(el.name) >= 0 ||
+                        el.name.indexOf("LSSESSION-") === 0
+                )
+                .map((el) => `${el.name}=${el.value}`)
+                .join("&");
+            fetchSurveyContent(
+                formData +
+                    "&popuppreview=false" +
+                    (ft ? "&filltoken=true" : "") +
+                    (token ? `&LSEMBED-token=${token}` : "")
+            ).then(function() {
+                if (isTokenForm) {
+                    const tokenLink = surveyRoot.querySelector(".ls-link-action.token");
+                    if (tokenLink) {
+                        tokenLink.click();
+                    }
+                }
+            });
+        };
+        form.action = getRequestUrl();
 
         form.querySelectorAll("[name]").forEach((el) => {
             el.name = "LSEMBED-" + el.name;
@@ -120,13 +202,40 @@
             el.remove()
         );
 
+        for (let languageLink of surveyRoot.querySelectorAll(
+            ".ls-language-link"
+        )) {
+            languageLink.classList.remove("ls-language-link");
+            languageLink.setAttribute(
+                "onclick",
+                `window["lssubmit" + ${lsFormIndex}]('${languageLink.getAttribute(
+                    "data-limesurvey-lang"
+                )}')`
+            );
+        }
+
+        let showMenu = false;
+        let navbarToggler = surveyRoot.querySelector("#navbar-toggler");
+        if (navbarToggler) {
+            navbarToggler.addEventListener("click", function () {
+                setTimeout(() => {
+                    showMenu = !showMenu;
+                    surveyRoot
+                        .querySelector("#main-dropdown")
+                        .classList[showMenu ? "add" : "remove"]("show");
+                }, 1);
+            });
+        }
+
         if (form.id === "form-token") {
             for (let toggle of form.querySelectorAll("#ls-toggle-token-show")) {
-                const tokenItems = toggle.parentNode.parentNode.querySelectorAll("#token");
+                const tokenItems =
+                    toggle.parentNode.parentNode.querySelectorAll("#token");
                 if (tokenItems.length) {
                     let tokenItem = tokenItems[0];
-                    toggle.addEventListener("click", function(evt) {
-                        tokenItem.type = ((tokenItem.type === "password") ? "text" : "password");
+                    toggle.addEventListener("click", function (evt) {
+                        tokenItem.type =
+                            tokenItem.type === "password" ? "text" : "password";
                         for (let child of toggle.children) {
                             child.classList.toggle("d-none");
                         }
@@ -144,6 +253,40 @@
             fetchSurveyContent(formData + "&popuppreview=false");
         });
 
+        let languageSelector = surveyRoot.querySelector(
+            "#language-changer-select"
+        );
+        if (languageSelector) {
+            let languageForm =
+                languageSelector.parentNode.parentNode.parentNode.parentNode;
+            languageForm.addEventListener("submit", (event) => {
+                event.preventDefault();
+                window["lssubmit" + lsFormIndex](languageSelector.value);
+            });
+        }
+
+        function register() {
+            window.open(
+                `${rootUrl}/index.php/${surveyId}?lang=${lang}&filltoken=true`,
+                "",
+                "popup"
+            );
+            let token = prompt("token");
+            if (token) {
+                window["lssubmit" + lsFormIndex](lang, true, token);
+            }
+        }
+        let tokenRedirects = [
+            ...surveyRoot.querySelectorAll(".nav-link.ls-link-action"),
+        ].filter((el) => el.href.indexOf("filltoken") >= 0);
+        if (tokenRedirects.length) {
+            let tokenRedirect = tokenRedirects[0];
+            tokenRedirect.addEventListener("click", function (evt) {
+                evt.preventDefault();
+                window["lssubmit" + lsFormIndex](lang, true);
+            });
+        }
+
         const headScriptsList = head.split("SEPARATOR");
         const beginScriptList = beginScripts.split("SEPARATOR");
         const bottomScriptsList = bottomScripts.split("SEPARATOR");
@@ -156,10 +299,88 @@
             .then(() => injectScripts(bottomScriptsList, bottomContainer));
     }
 
-    // Initial Load
-    fetchSurveyContent({
-        popuppreview: false,
-        js: false,
-        container_id: containerId,
-    });
+    if (!isPreview) {
+        // Initial Load
+        fetchSurveyContent({
+            popuppreview: false,
+            js: false,
+            container_id: containerId,
+        });
+    }
+
+    function initWidget() {
+        const root = window.__LS_SHADOW_ROOT__ || document;
+        var container = root.getElementById("limesurvey-container");
+        var button = root.getElementById("limesurvey-embed-button");
+        var icon = button.querySelector(".icon");
+        const side = button.dataset.side || "right";
+        var isOpen = false;
+
+        button.addEventListener("click", function () {
+            if (isOpen) {
+                button.classList.remove("open");
+                container.classList.remove("open");
+                icon.innerHTML = side === "right" ? "<" : ">";
+            } else {
+                button.classList.add("open");
+                container.classList.add("open");
+                icon.innerHTML = "x";
+            }
+            isOpen = !isOpen;
+        });
+    }
+
+    function initPopup() {
+        const root = window.__LS_SHADOW_ROOT__ || document;
+        const container = root.getElementById("limesurvey-parent-container");
+        const button = root.getElementById("limesurvey-embed-button");
+        const closeBtn = root.getElementById("ls-popup-close");
+        let isOpen = false;
+
+        function openPopup() {
+            container.classList.add("open");
+            isOpen = true;
+        }
+
+        function closePopup() {
+            container.classList.remove("open");
+            isOpen = false;
+        }
+
+        button.addEventListener("click", function () {
+            isOpen ? closePopup() : openPopup();
+        });
+
+        closeBtn.addEventListener("click", function () {
+            closePopup();
+        });
+
+        const triggerOn = button.getAttribute("data-trigger-on") || "auto";
+        if (triggerOn === "auto") {
+            openPopup();
+        }
+        if (triggerOn === "scroll") {
+            window.addEventListener("scroll", function onScroll() {
+                const rect = button.getBoundingClientRect();
+                if (rect.top < window.innerHeight && rect.bottom >= 0) {
+                    openPopup();
+                    window.removeEventListener("scroll", onScroll);
+                }
+            });
+        }
+    }
+
+    function iniInteractions() {
+        if (embedType === "Widget") {
+            initWidget();
+        } else if (embedType === "Popup") {
+            initPopup();
+        }
+    }
+
+    if (isPreview) {
+        iniInteractions();
+    } else {
+        window.onload = () => iniInteractions();
+    }
 })();
