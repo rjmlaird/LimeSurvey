@@ -35,6 +35,10 @@ class SurveyTemplate implements CommandInterface
     protected string $language = "en";
     protected bool $fillToken = false;
     protected string $token = "";
+    protected array $renderOnlyEmbedTypes = [
+        BaseEmbed::EMBED_STRUCTURE_EMAIL, BaseEmbed::EMBED_STRUCTURE_BUTTON
+    ];
+
     const ENDPOINT = "/index.php/rest/v1/survey-template/";
     /**
      * @psalm-suppress UndefinedClass
@@ -105,27 +109,20 @@ class SurveyTemplate implements CommandInterface
             );
         }
 
+        if ($response = $this->validateAccessToken()) {
+            return $response;
+        }
+
         if ($response = $this->ensureEmbeddingAllowed($survey)) {
             return $response;
         }
 
         $response = $this->buildLanguageSettings($survey);
-        $embedType = \Yii::app()->request->getParam('embed', BaseEmbed::EMBED_STRUCTURE_STANDARD);
-        $embedOptions = \Yii::app()->request->getParam('embedOptions', []);
-        $renderOnlyEmbedTypes = [BaseEmbed::EMBED_STRUCTURE_EMAIL, BaseEmbed::EMBED_STRUCTURE_BUTTON];
+        $this->buildEmbedOptions();
 
-        if (in_array($embedType, $renderOnlyEmbedTypes)) {
-            $embedOptions['surveyId'] = $this->surveyId;
-        }
-      
-        if ($response = $this->validateAccessToken()) {
-            return $response;
-        }
+        $embedType = App()->request->getParam('embed', BaseEmbed::EMBED_STRUCTURE_STANDARD);
 
-        $this->embed = BaseEmbed::instantiate($embedType)
-                        ->setEmbedOptions($embedOptions);
-
-        if (!in_array($embedType, $renderOnlyEmbedTypes)) {
+        if (!in_array($embedType, $this->renderOnlyEmbedTypes)) {
             $structure = '';
             if ($this->js) {
                 $structure = $this->getJavascript($embedType, $this->isPreview);
@@ -181,6 +178,19 @@ class SurveyTemplate implements CommandInterface
         return $response;
     }
 
+    private function buildEmbedOptions()
+    {
+        $embedType = App()->request->getParam('embed', BaseEmbed::EMBED_STRUCTURE_STANDARD);
+        $embedOptions = App()->request->getParam('embedOptions', []);
+
+        if (in_array($embedType, $this->renderOnlyEmbedTypes)) {
+            $embedOptions['surveyId'] = $this->surveyId;
+        }
+
+        $this->embed = BaseEmbed::instantiate($embedType)
+            ->setEmbedOptions($embedOptions);
+    }
+
     /**
      * Ensure Permissions
      *
@@ -233,6 +243,7 @@ class SurveyTemplate implements CommandInterface
         return false;
     }
 
+    /**
      * Validate the access token
      *
      * @return Response|false
