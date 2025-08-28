@@ -254,7 +254,7 @@ class SurveyTemplate implements CommandInterface
      *
      * @return Response|false
      */
-    private function validateAccessToken($survey)
+    private function validateAccessToken(Survey $survey)
     {
         if ($survey->hasTokens()) {
             $tokenFound = \Token::model($this->surveyId)->findByAttributes(['token' => $this->token]);
