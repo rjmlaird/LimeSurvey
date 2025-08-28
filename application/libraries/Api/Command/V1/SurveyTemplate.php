@@ -33,6 +33,8 @@ class SurveyTemplate implements CommandInterface
     protected bool $isPreview = true;
     protected bool $js = false;
     protected string $language = "en";
+    protected string $embedType = "";
+    protected array $embedOptions = [];
     protected bool $fillToken = false;
     protected string $token = "";
     protected array $renderOnlyEmbedTypes = [
@@ -117,15 +119,59 @@ class SurveyTemplate implements CommandInterface
             return $response;
         }
 
-        $response = $this->buildLanguageSettings($survey);
         $this->buildEmbedOptions();
+        $response = $this->buildLanguageSettings($survey);
+        $response = $this->buildEmbedStructure($response);
 
-        $embedType = App()->request->getParam('embed', BaseEmbed::EMBED_STRUCTURE_STANDARD);
+        return $this->responseFactory->makeSuccess(
+            array_merge($response, ['template' => $this->embed->render()])
+        );
+    }
 
-        if (!in_array($embedType, $this->renderOnlyEmbedTypes)) {
+    private function initializeRequest(Request $request): void
+    {
+        $this->surveyId = (int)$request->getData('_id');
+        $this->isPreview = $this->isPreview && (\Yii::app()->request->getParam('popuppreview', 'true') === 'true');
+        $this->js = $this->js || (\Yii::app()->request->getParam('js', 'false') === 'true');
+        $this->fillToken = (\Yii::app()->request->getParam('filltoken', 'false') === 'true');
+        $this->token = \Yii::app()->request->getParam('LSEMBED-token', '');
+        $this->embedType = \Yii::app()->request->getParam('embed', BaseEmbed::EMBED_STRUCTURE_STANDARD);
+        $this->embedOptions = \Yii::app()->request->getParam('embedOptions', []);
+    }
+
+    private function buildLanguageSettings(Survey $survey): array
+    {
+        $this->language = ((\Yii::app()->request->getParam('lang') ?? $survey->language) ?? 'en');
+        $languageSettings = $this
+            ->surveyLanguageSetting
+            ->find('surveyls_survey_id = :sid and surveyls_language = :language', [
+                ':sid'      => $this->surveyId,
+                ':language' => $this->language
+            ]);
+        $response = [];
+        if ($languageSettings) {
+            $response['title'] = $languageSettings->surveyls_title;
+            $response['subtitle'] = $languageSettings->surveyls_description;
+        }
+        return $response;
+    }
+
+    private function buildEmbedOptions(): void
+    {
+        if (in_array($this->embedType, $this->renderOnlyEmbedTypes)) {
+            $this->embedOptions['surveyId'] = $this->surveyId;
+        }
+
+        $this->embed = BaseEmbed::instantiate($this->embedType)
+            ->setEmbedOptions($this->embedOptions);
+    }
+
+    private function buildEmbedStructure(array $response = []): array
+    {
+        if (!in_array($this->embedType, $this->renderOnlyEmbedTypes)) {
             $structure = '';
             if ($this->js) {
-                $structure = $this->getJavascript($embedType, $this->isPreview);
+                $structure = $this->getJavascript($this->embedType, $this->isPreview);
                 if (!$this->isPreview) {
                     $this->embed->setStructure($structure);
                 }
@@ -147,48 +193,7 @@ class SurveyTemplate implements CommandInterface
             }
         }
 
-        return $this->responseFactory->makeSuccess(
-            array_merge($response, ['template' => $this->embed->render()])
-        );
-    }
-
-    private function initializeRequest(Request $request): void
-    {
-        $this->surveyId = (int)$request->getData('_id');
-        $this->isPreview = $this->isPreview && (\Yii::app()->request->getParam('popuppreview', 'true') === 'true');
-        $this->js = $this->js || (\Yii::app()->request->getParam('js', 'false') === 'true');
-        $this->fillToken = (\Yii::app()->request->getParam('filltoken', 'false') === 'true');
-        $this->token = \Yii::app()->request->getParam('LSEMBED-token', '');
-    }
-
-    private function buildLanguageSettings(Survey $survey): array
-    {
-        $this->language = ((\Yii::app()->request->getParam('lang') ?? $survey->language) ?? 'en');
-        $languageSettings = $this
-            ->surveyLanguageSetting
-            ->find('surveyls_survey_id = :sid and surveyls_language = :language', [
-                ':sid'      => $this->surveyId,
-                ':language' => $this->language
-            ]);
-        $response = [];
-        if ($languageSettings) {
-            $response['title'] = $languageSettings->surveyls_title;
-            $response['subtitle'] = $languageSettings->surveyls_description;
-        }
         return $response;
-    }
-
-    private function buildEmbedOptions()
-    {
-        $embedType = App()->request->getParam('embed', BaseEmbed::EMBED_STRUCTURE_STANDARD);
-        $embedOptions = App()->request->getParam('embedOptions', []);
-
-        if (in_array($embedType, $this->renderOnlyEmbedTypes)) {
-            $embedOptions['surveyId'] = $this->surveyId;
-        }
-
-        $this->embed = BaseEmbed::instantiate($embedType)
-            ->setEmbedOptions($embedOptions);
     }
 
     /**
