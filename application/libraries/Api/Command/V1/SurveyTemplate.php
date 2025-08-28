@@ -265,7 +265,7 @@ class SurveyTemplate implements CommandInterface
         }
         return false;
     }
-      
+
     /**
      * Get template data
      *
