@@ -19,6 +19,7 @@ use LimeSurvey\Models\Services\embeds\BaseEmbed;
  * Survey Template
  *
  * Used by cloud / account to retrieve templates.
+ * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
  */
 class SurveyTemplate implements CommandInterface
 {
