@@ -109,7 +109,7 @@ class SurveyTemplate implements CommandInterface
             );
         }
 
-        if ($response = $this->validateAccessToken()) {
+        if ($response = $this->validateAccessToken($survey)) {
             return $response;
         }
 
@@ -248,12 +248,12 @@ class SurveyTemplate implements CommandInterface
      *
      * @return Response|false
      */
-    private function validateAccessToken()
+    private function validateAccessToken($survey)
     {
-        if ($this->survey->hasTokens()) {
+        if ($survey->hasTokens()) {
             $tokenFound = \Token::model($this->surveyId)->findByAttributes(['token' => $this->token]);
-            $step = \Yii::app()->request->getParam('LSEMBED-move', '');
-            if ($this->token && !$tokenFound && $step !== 'movesubmit') {
+            $step = App()->request->getParam('LSEMBED-move', '');
+            if ($this->token && $step !== 'movesubmit' && (!$tokenFound  || $tokenFound->usesleft < 1)) {
                 return $this->responseFactory->makeErrorNotFound(
                     (new ResponseDataError(
                         'TOKEN_NOT_FOUND',
