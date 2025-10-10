@@ -1,18 +1,24 @@
 <?php
 
-/**
- * LimeSurvey internal configuration file
- * This is required for LimeSurvey to run.
- * Generated manually to fix missing file issue.
- */
-
-$settings = [];
-
-$settings['rootdir'] = '/var/www/html';          // LimeSurvey root directory
-$settings['publicdir'] = '/var/www/html/upload'; // Upload directory
-$settings['tmpdir'] = '/var/www/html/tmp';       // Temporary/runtime directory
-
-// Optional: if you want to include Intl PHP extension check
-if (!function_exists('intl_get_error_code')) {
-    error_log('PHP Intl extension is not installed.');
+if (!defined('BASEPATH')) {
+    exit('No direct script access allowed');
 }
+
+/**
+ * Internal configuration — merge user config
+ */
+$userConfig = require(__DIR__ . '/config.php');
+
+$internalConfig = array(
+    'basePath' => dirname(dirname(__FILE__)),
+    'name' => 'LimeSurvey',
+    'defaultController' => 'surveys',
+);
+
+$result = CMap::mergeArray($internalConfig, $userConfig);
+
+$result['components']['urlManager']['rules']['<_controller:\w+>/<_action:\w+>'] = '<_controller>/<_action>';
+
+return $result;
+
+/* End of file internal.php */
